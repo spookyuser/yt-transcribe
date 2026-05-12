@@ -6,11 +6,11 @@ class YtTranscribe < Formula
   license "MIT"
   head "https://github.com/spookyuser/yt-transcribe.git", branch: "main"
 
-  depends_on arch: :arm64
-  depends_on macos: :sonoma
-  depends_on "ffmpeg"
-  depends_on "yt-dlp"
   depends_on xcode: :build
+  depends_on arch: :arm64
+  depends_on "ffmpeg"
+  depends_on macos: :sonoma
+  depends_on "yt-dlp"
 
   resource "fluidaudio" do
     url "https://github.com/FluidInference/FluidAudio/archive/refs/tags/v0.14.5.tar.gz"
