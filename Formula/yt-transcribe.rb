@@ -2,7 +2,7 @@ class YtTranscribe < Formula
   desc "Transcribe YouTube videos locally on Apple Silicon with yt-dlp + FluidAudio"
   homepage "https://github.com/spookyuser/yt-transcribe"
   url "https://github.com/spookyuser/yt-transcribe/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "PLACEHOLDER_FILLED_AFTER_TAG_PUSH"
+  sha256 "958f1e7602cd20f4e6855d00f5444efdf9ab458f528f0111175a2b539a263a83"
   license "MIT"
   head "https://github.com/spookyuser/yt-transcribe.git", branch: "main"
 
