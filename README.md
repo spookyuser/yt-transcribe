@@ -34,6 +34,25 @@ xcode-select --install   # if you don't already have the Swift toolchain
 
 ## Install
 
+### Homebrew (recommended)
+
+The repo doubles as a personal tap. Because it's not named `homebrew-yt-transcribe`, tap it by URL:
+
+```bash
+brew tap spookyuser/yt-transcribe https://github.com/spookyuser/yt-transcribe
+brew install yt-transcribe
+```
+
+This builds FluidAudio's CLI from source (Swift, ~2 min on first install) and drops both binaries in your Homebrew prefix. `yt-dlp` and `ffmpeg` come along as dependencies.
+
+Or, latest `main`:
+
+```bash
+brew install --HEAD spookyuser/yt-transcribe/yt-transcribe
+```
+
+### Manual
+
 ```bash
 # 1. Build FluidAudio's CLI (cached at ~/Developer/FluidAudio by default)
 git clone https://github.com/FluidInference/FluidAudio.git ~/Developer/FluidAudio
@@ -93,6 +112,14 @@ $EDITOR "$(yt-transcribe https://youtu.be/...)"
 4. Stdout from the CLI is the transcript text; the wrapper wraps it with a small markdown header and writes the file.
 
 ## Updating
+
+If you installed via brew:
+
+```bash
+brew update && brew upgrade yt-transcribe
+```
+
+If you installed manually:
 
 ```bash
 cd ~/Developer/FluidAudio && git pull && swift build -c release
