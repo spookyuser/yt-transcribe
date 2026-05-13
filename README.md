@@ -1,6 +1,6 @@
 # yt-transcribe
 
-A tiny bash wrapper that downloads a YouTube video with [yt-dlp](https://github.com/yt-dlp/yt-dlp) and transcribes it locally with [FluidAudio](https://github.com/FluidInference/FluidAudio) — Apple-Silicon-native Core ML ASR. No API keys, nothing leaves your machine.
+A tiny bash wrapper that downloads a YouTube video with [yt-dlp](https://github.com/yt-dlp/yt-dlp) and transcribes it locally with [FluidAudio](https://github.com/FluidInference/FluidAudio), Apple-Silicon-native Core ML ASR.
 
 ```bash
 yt-transcribe "https://www.youtube.com/watch?v=jNQXAC9IVRw"
@@ -21,16 +21,9 @@ to say.
 ## Requirements
 
 - macOS 14+ on Apple Silicon (FluidAudio CLI is mac-only and uses Core ML)
-- Swift 6 toolchain (ships with Xcode / Command Line Tools)
-- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) on `PATH`
-- [`ffmpeg`](https://ffmpeg.org/) on `PATH` (used by yt-dlp for the audio extract step)
+- Swift 6 toolchain (ships with Xcode / Command Line Tools — already present if you have Homebrew)
 
-Quick install of those:
-
-```bash
-brew install yt-dlp ffmpeg
-xcode-select --install   # if you don't already have the Swift toolchain
-```
+`yt-dlp` and `ffmpeg` are pulled in automatically by the Homebrew install below. For the manual path, install them yourself: `brew install yt-dlp ffmpeg`.
 
 ## Install
 
