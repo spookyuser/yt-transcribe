@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# yt-transcribe — download a YouTube URL with yt-dlp and transcribe with FluidAudio.
+# yt-transcribe — transcribe YouTube URLs or local audio/video files with FluidAudio.
 #
 # Defaults:
 #   - model version v2 (English, higher recall)
-#   - audio cached in /tmp/yt-transcribe (override with $YT_TRANSCRIBE_CACHE)
-#   - transcript written to ./<video-title>.md in the current directory
+#   - YouTube audio cached in /tmp/yt-transcribe (override with $YT_TRANSCRIBE_CACHE)
+#   - transcript written to ./<title-or-filename>.md in the current directory
 #
 # Usage:
-#   yt-transcribe <url> [-o out.md] [extra fluidaudiocli args...]
-#   yt-transcribe <url> --model-version v3        # override default v2
-#   yt-transcribe <url> --word-timestamps --metadata
+#   yt-transcribe <youtube-url|local-file> [-o out.md] [extra fluidaudiocli args...]
+#   yt-transcribe <youtube-url|local-file> --model-version v3
+#   yt-transcribe <youtube-url|local-file> --word-timestamps --metadata
 #
 # Any flag the wrapper doesn't consume is forwarded to `fluidaudiocli transcribe`.
 set -euo pipefail
@@ -17,12 +17,16 @@ set -euo pipefail
 FLUIDAUDIO_BIN="${FLUIDAUDIO_BIN:-$HOME/Developer/FluidAudio/.build/release/fluidaudiocli}"
 CACHE_DIR="${YT_TRANSCRIBE_CACHE:-/tmp/yt-transcribe}"
 
+usage() {
+    echo "usage: yt-transcribe <youtube-url|local-file> [-o out.md] [fluidaudiocli args...]" >&2
+}
+
 if [[ $# -lt 1 ]]; then
-    echo "usage: yt-transcribe <youtube-url> [-o out.md] [fluidaudiocli args...]" >&2
+    usage
     exit 64
 fi
 
-URL="$1"; shift
+INPUT="$1"; shift
 
 OUT_PATH=""
 FORWARD_ARGS=()
@@ -31,8 +35,16 @@ USER_SET_MODEL=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -o|--output)
+            if [[ $# -lt 2 ]]; then
+                echo "yt-transcribe: $1 requires a path" >&2
+                exit 64
+            fi
             OUT_PATH="$2"; shift 2 ;;
         --model-version)
+            if [[ $# -lt 2 ]]; then
+                echo "yt-transcribe: --model-version requires a value" >&2
+                exit 64
+            fi
             USER_SET_MODEL=1
             FORWARD_ARGS+=("$1" "$2"); shift 2 ;;
         --)
@@ -52,28 +64,41 @@ if [[ ! -x "$FLUIDAUDIO_BIN" ]]; then
     exit 70
 fi
 
-mkdir -p "$CACHE_DIR"
+# If the first argument is an existing file, transcribe it directly.
+# Otherwise, treat it as a yt-dlp-supported URL/input and cache downloaded audio.
+if [[ -f "$INPUT" ]]; then
+    TARGET="$INPUT"
+    TITLE="$(basename "$INPUT")"
+    TITLE="${TITLE%.*}"
+    SOURCE_LABEL="File"
+    SOURCE_VALUE="$INPUT"
+else
+    mkdir -p "$CACHE_DIR"
 
-# Stable per-URL filename so repeated runs reuse the cached download.
-SLUG="$(printf '%s' "$URL" | shasum | cut -c1-12)"
-TARGET="$CACHE_DIR/$SLUG.m4a"
+    # Stable per-input filename so repeated runs reuse the cached download.
+    SLUG="$(printf '%s' "$INPUT" | shasum | cut -c1-12)"
+    TARGET="$CACHE_DIR/$SLUG.m4a"
 
-echo ">> fetching title" >&2
-TITLE="$(yt-dlp --no-warnings --skip-download --print '%(title)s' "$URL" 2>/dev/null || true)"
-[[ -z "$TITLE" ]] && TITLE="$SLUG"
+    echo ">> fetching title" >&2
+    TITLE="$(yt-dlp --no-warnings --skip-download --print '%(title)s' "$INPUT" 2>/dev/null || true)"
+    [[ -z "$TITLE" ]] && TITLE="$SLUG"
+
+    if [[ ! -s "$TARGET" ]]; then
+        echo ">> downloading audio to $TARGET" >&2
+        yt-dlp -f 'bestaudio[ext=m4a]/bestaudio' \
+               --extract-audio --audio-format m4a \
+               -o "$TARGET" \
+               "$INPUT" >&2
+    fi
+
+    SOURCE_LABEL="Source"
+    SOURCE_VALUE="$INPUT"
+fi
 
 if [[ -z "$OUT_PATH" ]]; then
     # Sanitize title: keep alnum, dash, underscore, space; collapse the rest to '-'.
     SAFE="$(printf '%s' "$TITLE" | LC_ALL=C tr -c '[:alnum:]._ -' '-' | tr -s '-' | sed 's/^-//;s/-$//')"
-    OUT_PATH="./${SAFE:-$SLUG}.md"
-fi
-
-if [[ ! -s "$TARGET" ]]; then
-    echo ">> downloading audio to $TARGET" >&2
-    yt-dlp -f 'bestaudio[ext=m4a]/bestaudio' \
-           --extract-audio --audio-format m4a \
-           -o "$TARGET" \
-           "$URL" >&2
+    OUT_PATH="./${SAFE:-transcript}.md"
 fi
 
 echo ">> transcribing -> $OUT_PATH" >&2
@@ -81,7 +106,7 @@ TRANSCRIPT="$("$FLUIDAUDIO_BIN" transcribe "$TARGET" "${FORWARD_ARGS[@]}")"
 
 {
     printf '# %s\n\n' "$TITLE"
-    printf 'Source: %s\n\n' "$URL"
+    printf '%s: %s\n\n' "$SOURCE_LABEL" "$SOURCE_VALUE"
     printf '%s\n' "$TRANSCRIPT"
 } > "$OUT_PATH"
 
